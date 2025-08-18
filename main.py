@@ -1,39 +1,36 @@
-import time
-import ssl
-import logging
 import paho.mqtt.client as mqtt
 
-logging.basicConfig(level=logging.DEBUG)
-
+# MQTT broker details
 BROKER = "e7b11161.ala.us-east-1.emqxsl.com"
 PORT = 8883
-TOPIC = "test/topic"
+TOPIC = "innovation_hub/spot/1"
 USERNAME = "farai"
 PASSWORD = "farairato3210"
 
+# Callback when client connects
 def on_connect(client, userdata, flags, rc, properties=None):
-    print("on_connect", rc)
     if rc == 0:
         print("✅ Connected to broker")
         client.subscribe(TOPIC)
+        print(f"📡 Subscribed to {TOPIC}")
     else:
-        print("❌ Failed to connect, return code", rc)
+        print(f"❌ Connection failed, return code {rc}")
 
+# Callback when message arrives
 def on_message(client, userdata, msg):
-    print(f"📩 Received: {msg.payload.decode()} on topic {msg.topic}")
+    print(f"📩 Message from {msg.topic}: {msg.payload.decode()}")
 
-client = mqtt.Client(client_id="python-subscriber", protocol=mqtt.MQTTv5)
-client.username_pw_set(USERNAME, PASSWORD)
-client.tls_set(cert_reqs=ssl.CERT_NONE)  # less strict, for testing; use default in production!
+def main():
+    client = mqtt.Client(protocol=mqtt.MQTTv5)  # use v5 protocol
+    client.username_pw_set(USERNAME, PASSWORD)
 
-client.on_connect = on_connect
-client.on_message = on_message
+    # Enable TLS (secure connection)
+    client.tls_set()  # uses system CA certs
+    client.on_connect = on_connect
+    client.on_message = on_message
 
-while True:
-    try:
-        print("⏳ Connecting to broker...")
-        client.connect(BROKER, PORT, 60)
-        client.loop_forever()
-    except Exception as e:
-        print("⚠️ Error:", e)
-        time.sleep(5)
+    client.connect(BROKER, PORT, keepalive=60)
+    client.loop_forever()
+
+if __name__ == "__main__":
+    main()
